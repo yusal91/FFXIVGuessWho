@@ -272,12 +272,14 @@ class FFXIVGuessWhoGame {
         // Update character board
         this.renderCharacterBoard(data.remainingCharacters);
 
-        // Show turn notification
+        // Show notification only when YOUR turn starts with better messaging
         if (data.currentTurn.id === this.socket.id) {
-            this.showTurnNotification("✨ YOUR");
-        } else {
-            const opponent = this.currentGame.players.find(p => p.id !== this.socket.id);
-            this.showTurnNotification(`🎮 ${opponent.username}'s`);
+            this.showTurnNotification("🎮 YOUR TURN - Ask a Question!");
+            // Optional: Add a subtle screen flash
+            document.body.style.backgroundColor = '#2a3c6c';
+            setTimeout(() => {
+                document.body.style.backgroundColor = '';
+            }, 300);
         }
 
         // Update turn
