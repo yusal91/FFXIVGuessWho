@@ -1,10 +1,57 @@
 class FFXIVGuessWhoGame {
-    constructor() {
+        constructor() {
         this.socket = io();
         this.currentGame = null;
-        this.selectedCharacter = null;
         this.setupEventListeners();
         this.setupSocketListeners();
+        this.setupTurnNotifications(); // ← ADD THIS LINE
+    }
+
+    setupTurnNotifications() {
+        // Add CSS for animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+                40% { transform: translate(-50%, -50%) scale(1); }
+                60% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            }
+            .turn-notification {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #ffcc00, #e6b800);
+                color: #1a2a6c;
+                padding: 20px 40px;
+                border-radius: 15px;
+                font-size: 1.8rem;
+                font-weight: bold;
+                z-index: 1000;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+                text-align: center;
+                animation: fadeInOut 2s ease-in-out;
+                border: 3px solid #1a2a6c;
+                text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    showTurnNotification(playerName) {
+        const notification = document.createElement('div');
+        notification.className = 'turn-notification';
+        notification.textContent = `${playerName} Turn!`;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 2000);
     }
 
     setupEventListeners() {
@@ -224,6 +271,14 @@ class FFXIVGuessWhoGame {
 
         // Update character board
         this.renderCharacterBoard(data.remainingCharacters);
+
+        // Show turn notification
+        if (data.currentTurn.id === this.socket.id) {
+            this.showTurnNotification("✨ YOUR");
+        } else {
+            const opponent = this.currentGame.players.find(p => p.id !== this.socket.id);
+            this.showTurnNotification(`🎮 ${opponent.username}'s`);
+        }
 
         // Update turn
         this.updateTurnIndicator(data.currentTurn);
