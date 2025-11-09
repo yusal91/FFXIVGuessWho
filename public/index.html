@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Fantasy XIV Guess Who</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <header>
+                <h1>Final Fantasy XIV Guess Who</h1>
+                <p class="subtitle">Challenge Warriors of Light across Eorzea!</p>
+            </header>
+            <div class="login-form">
+                <input type="text" id="username-input" placeholder="Enter your Warrior of Light name" maxlength="20">
+                <button id="find-match-btn" class="btn">Find Match</button>
+            </div>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waiting-screen" class="screen">
+            <h2>Searching for fellow Adventurers...</h2>
+            <div class="loading"></div>
+            <p>Waiting in the Aetheryte plaza...</p>
+            <button id="cancel-search" class="btn">Cancel</button>
+        </div>
+
+        <!-- Character Selection -->
+        <div id="character-selection" class="screen">
+            <h2>Select Your Character</h2>
+            <p>Choose the Scion your opponent will try to guess</p>
+            <div id="characters-grid" class="characters-grid"></div>
+            <p>Your opponent is also selecting their champion...</p>
+            
+            <div class="instructions">
+                <h3>How to Play</h3>
+                <ul>
+                    <li>Each player selects a character that the other player will try to guess</li>
+                    <li>Take turns asking yes/no questions about the characters</li>
+                    <li>Eliminate characters that don't match the answers</li>
+                    <li>First player to correctly guess the opponent's character wins!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <h2>Find Your Opponent's Character</h2>
+                <div id="turn-indicator"></div>
+            </div>
+            
+            <div class="game-container">
+                <div class="players-info">
+                    <div id="player1-info" class="player-info"></div>
+                    <div id="player2-info" class="player-info"></div>
+                </div>
+                
+                <div class="game-board">
+                    <div class="game-info">
+                        <div class="info-item">
+                            <div class="info-label">Characters Left</div>
+                            <div class="info-value" id="remaining-count">24</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Eliminated</div>
+                            <div class="info-value" id="eliminated-count">0</div>
+                        </div>
+                    </div>
+                    
+                    <div id="characters-board" class="characters-grid"></div>
+                </div>
+                
+                <div class="chat-section">
+                    <div id="chat-messages" class="chat-messages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="question-input" placeholder="Ask a question (e.g., 'Is it Y'shtola?')" disabled>
+                        <button id="send-question" disabled>Ask</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <h2 id="game-result"></h2>
+            <button id="play-again" class="btn">Return to Aetheryte</button>
+        </div>
+    </div>
+
+    <!-- Character Panel -->
+    <div id="character-panel" class="character-panel">
+        <div class="panel-header" id="panel-toggle">
+            <h3>Your Character</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="panel-content" id="panel-content">
+            <div id="selected-character-display" class="selected-character">
+                <img id="selected-character-image" src="" alt="Selected Character" class="selected-character-icon">
+                <div class="selected-character-info">
+                    <div class="selected-character-name" id="selected-character-name">None Selected</div>
+                    <div class="selected-character-label">Your Champion</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>

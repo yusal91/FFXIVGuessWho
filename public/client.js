@@ -1,0 +1,263 @@
+class FFXIVGuessWhoGame {
+    constructor() {
+        this.socket = io();
+        this.currentGame = null;
+        this.selectedCharacter = null;
+        this.setupEventListeners();
+        this.setupSocketListeners();
+    }
+
+    setupEventListeners() {
+        // Login screen
+        document.getElementById('find-match-btn').addEventListener('click', () => this.findMatch());
+        document.getElementById('username-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.findMatch();
+        });
+
+        // Waiting screen
+        document.getElementById('cancel-search').addEventListener('click', () => this.cancelSearch());
+
+        // Game screen
+        document.getElementById('send-question').addEventListener('click', () => this.sendQuestion());
+        document.getElementById('question-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.sendQuestion();
+        });
+
+        // Game over screen
+        document.getElementById('play-again').addEventListener('click', () => this.playAgain());
+
+        // Character panel
+        document.getElementById('panel-toggle').addEventListener('click', () => this.togglePanel());
+    }
+
+    setupSocketListeners() {
+        this.socket.on('waiting', (message) => {
+            this.showScreen('waiting-screen');
+            console.log('Waiting for opponent...');
+        });
+
+        this.socket.on('game-start', (data) => {
+            this.currentGame = data;
+            this.showScreen('character-selection');
+            this.renderCharacterSelection(data.characters);
+        });
+
+        this.socket.on('game-ready', (data) => {
+            this.showScreen('game-screen');
+            this.initializeGame(data);
+        });
+
+        this.socket.on('question-result', (data) => {
+            this.handleQuestionResult(data);
+        });
+
+        this.socket.on('game-over', (data) => {
+            this.showGameOver(data);
+        });
+
+        this.socket.on('opponent-disconnected', () => {
+            alert('Your opponent has returned to their home world. Returning to main menu.');
+            this.showScreen('login-screen');
+        });
+    }
+
+    findMatch() {
+        const username = document.getElementById('username-input').value.trim();
+        if (!username) {
+            alert('Please enter your Warrior of Light name');
+            return;
+        }
+
+        this.socket.emit('find-match', username);
+        this.showScreen('waiting-screen');
+    }
+
+    cancelSearch() {
+        this.showScreen('login-screen');
+    }
+
+    showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    renderCharacterSelection(characters) {
+        const grid = document.getElementById('characters-grid');
+        grid.innerHTML = '';
+
+        characters.forEach(character => {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.innerHTML = `
+                <img src="${character.image}" alt="${character.name}" class="character-icon">
+                <div class="character-name">${character.name}</div>
+            `;
+            
+            card.addEventListener('click', () => this.selectCharacter(character, card));
+            grid.appendChild(card);
+        });
+    }
+
+    selectCharacter(character, card) {
+        // Visual feedback
+        document.querySelectorAll('.character-card').forEach(c => {
+            c.classList.remove('selected');
+        });
+        card.classList.add('selected');
+
+        this.selectedCharacter = character;
+        this.updateCharacterPanel();
+
+        // Send selection to server
+        this.socket.emit('select-character', {
+            gameId: this.currentGame.gameId,
+            character: character
+        });
+    }
+
+    updateCharacterPanel() {
+        const panel = document.getElementById('character-panel');
+        const image = document.getElementById('selected-character-image');
+        const name = document.getElementById('selected-character-name');
+        const display = document.getElementById('selected-character-display');
+
+        if (this.selectedCharacter) {
+            image.src = this.selectedCharacter.image;
+            name.textContent = this.selectedCharacter.name;
+            display.style.display = 'flex';
+            panel.style.display = 'block';
+        } else {
+            display.style.display = 'none';
+        }
+    }
+
+    togglePanel() {
+        document.getElementById('character-panel').classList.toggle('panel-collapsed');
+    }
+
+    initializeGame(data) {
+        // Update player info
+        const player1 = data.players[0];
+        const player2 = data.players[1];
+        
+        document.getElementById('player1-info').innerHTML = `
+            <strong>You</strong><br>
+            ${player1.username}<br>
+            <em>Your character: ???</em>
+        `;
+        
+        document.getElementById('player2-info').innerHTML = `
+            <strong>Opponent</strong><br>
+            ${player2.username}<br>
+            <em>Their character: ???</em>
+        `;
+
+        // Initialize character board
+        this.renderCharacterBoard(this.currentGame.characters);
+        this.updateTurnIndicator(data.currentTurn);
+    }
+
+    renderCharacterBoard(characters) {
+        const board = document.getElementById('characters-board');
+        board.innerHTML = '';
+
+        characters.forEach(character => {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.innerHTML = `
+                <img src="${character.image}" alt="${character.name}" class="character-icon">
+                <div class="character-name">${character.name}</div>
+            `;
+            board.appendChild(card);
+        });
+
+        document.getElementById('remaining-count').textContent = characters.length;
+        document.getElementById('eliminated-count').textContent = 24 - characters.length;
+    }
+
+    updateTurnIndicator(currentTurn) {
+        const indicator = document.getElementById('turn-indicator');
+        const questionInput = document.getElementById('question-input');
+        const sendButton = document.getElementById('send-question');
+
+        // Update player turn highlights
+        document.querySelectorAll('.player-info').forEach(info => {
+            info.classList.remove('current-turn');
+        });
+
+        if (currentTurn.id === this.socket.id) {
+            indicator.textContent = "Your turn! Ask a question about your opponent's character.";
+            questionInput.disabled = false;
+            sendButton.disabled = false;
+            document.getElementById('player1-info').classList.add('current-turn');
+        } else {
+            indicator.textContent = "Opponent's turn. Waiting for their question...";
+            questionInput.disabled = true;
+            sendButton.disabled = true;
+            document.getElementById('player2-info').classList.add('current-turn');
+        }
+    }
+
+    sendQuestion() {
+        const questionInput = document.getElementById('question-input');
+        const question = questionInput.value.trim();
+
+        if (!question) return;
+
+        this.socket.emit('ask-question', {
+            gameId: this.currentGame.gameId,
+            question: question
+        });
+
+        // Add question to chat
+        this.addChatMessage(`You: ${question}`, 'question');
+
+        questionInput.value = '';
+    }
+
+    handleQuestionResult(data) {
+        // Add answer to chat
+        this.addChatMessage(`${data.askedBy} asked: "${data.question}"`, 'question');
+        this.addChatMessage(`Answer: ${data.answer}`, 'answer');
+
+        // Update character board
+        this.renderCharacterBoard(data.remainingCharacters);
+
+        // Update turn
+        this.updateTurnIndicator(data.currentTurn);
+    }
+
+    addChatMessage(message, type = 'system') {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.textContent = message;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    showGameOver(data) {
+        const resultDiv = document.getElementById('game-result');
+        if (data.winner) {
+            resultDiv.textContent = `${data.winner} wins! The character was ${data.character.name}`;
+            resultDiv.style.color = '#ffcc00';
+        }
+        this.showScreen('game-over-screen');
+    }
+
+    playAgain() {
+        this.showScreen('login-screen');
+        // Reset form
+        document.getElementById('username-input').value = '';
+        this.currentGame = null;
+        this.selectedCharacter = null;
+        document.getElementById('character-panel').style.display = 'none';
+    }
+}
+
+// Initialize the game when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new FFXIVGuessWhoGame();
+});
