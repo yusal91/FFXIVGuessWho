@@ -185,19 +185,20 @@ class FFXIVGuessWhoGame {
     }
 
     initializeGame(data) {
-        // Update player info
-        const player1 = data.players[0];
-        const player2 = data.players[1];
+        // FIX: Find which player is YOU and which is OPPONENT
+        const currentPlayer = data.players.find(p => p.id === this.socket.id);
+        const opponent = data.players.find(p => p.id !== this.socket.id);
         
+        // Update player info - CORRECTLY assign You vs Opponent
         document.getElementById('player1-info').innerHTML = `
             <strong>You</strong><br>
-            ${player1.username}<br>
+            ${currentPlayer.username}<br>
             <em>Your character: ???</em>
         `;
         
         document.getElementById('player2-info').innerHTML = `
             <strong>Opponent</strong><br>
-            ${player2.username}<br>
+            ${opponent.username}<br>
             <em>Their character: ???</em>
         `;
 
@@ -272,9 +273,9 @@ class FFXIVGuessWhoGame {
         // Update character board
         this.renderCharacterBoard(data.remainingCharacters);
 
-        // Show notification only when YOUR turn starts with better messaging
+        // Show turn notification - ONLY when it becomes YOUR turn
         if (data.currentTurn.id === this.socket.id) {
-            this.showTurnNotification("🎮 YOUR TURN - Ask a Question!");
+            this.showTurnNotification("✨ YOUR TURN!");
             // Optional: Add a subtle screen flash
             document.body.style.backgroundColor = '#2a3c6c';
             setTimeout(() => {
