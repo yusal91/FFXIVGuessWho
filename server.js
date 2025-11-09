@@ -185,8 +185,8 @@ io.on('connection', (socket) => {
     });
 });
 
+// ✅ CRITICAL FOR RAILWAY - This must be at the bottom
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Final Fantasy XIV Guess Who Server running on port ${PORT}`);
-    console.log(`Open http://localhost:${PORT} in your browser`);
 });
