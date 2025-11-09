@@ -273,14 +273,9 @@ class FFXIVGuessWhoGame {
         // Update character board
         this.renderCharacterBoard(data.remainingCharacters);
 
-        // Show turn notification - ONLY when it becomes YOUR turn
-        if (data.currentTurn.id === this.socket.id) {
+        // Only show turn notification if game is still ongoing AND it's your turn
+        if (data.remainingCharacters.length > 1 && data.currentTurn.id === this.socket.id) {
             this.showTurnNotification("✨ YOUR TURN!");
-            // Optional: Add a subtle screen flash
-            document.body.style.backgroundColor = '#2a3c6c';
-            setTimeout(() => {
-                document.body.style.backgroundColor = '';
-            }, 300);
         }
 
         // Update turn
@@ -296,12 +291,13 @@ class FFXIVGuessWhoGame {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-        showGameOver(data) {
+    showGameOver(data) {
         const resultDiv = document.getElementById('game-result');
         if (data.winner) {
-            const currentPlayer = this.currentGame.players.find(p => p.id === this.socket.id);
+            // The server sends the correct winner - check if it's YOU
+            const isYouTheWinner = data.winner === this.socket.data.username;
             
-            if (data.winner === currentPlayer.username) {
+            if (isYouTheWinner) {
                 resultDiv.textContent = `🎉 VICTORY! You win! The character was ${data.character.name}`;
                 resultDiv.style.color = '#4CAF50';
             } else {
@@ -342,6 +338,22 @@ class FFXIVGuessWhoGame {
         
         const sendButton = document.getElementById('send-question');
         if (sendButton) sendButton.disabled = true;
+        
+        // Reset player info displays
+        const player1Info = document.getElementById('player1-info');
+        const player2Info = document.getElementById('player2-info');
+        if (player1Info) player1Info.innerHTML = '';
+        if (player2Info) player2Info.innerHTML = '';
+        
+        // Reset turn indicator
+        const turnIndicator = document.getElementById('turn-indicator');
+        if (turnIndicator) turnIndicator.textContent = '';
+        
+        // Reset character boards
+        const selectionGrid = document.getElementById('characters-grid');
+        const gameGrid = document.getElementById('characters-board');
+        if (selectionGrid) selectionGrid.innerHTML = '';
+        if (gameGrid) gameGrid.innerHTML = '';
         
         // Reset login form
         document.getElementById('username-input').value = '';
