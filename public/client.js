@@ -296,22 +296,57 @@ class FFXIVGuessWhoGame {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    showGameOver(data) {
+        showGameOver(data) {
         const resultDiv = document.getElementById('game-result');
         if (data.winner) {
-            resultDiv.textContent = `${data.winner} wins! The character was ${data.character.name}`;
-            resultDiv.style.color = '#ffcc00';
+            const currentPlayer = this.currentGame.players.find(p => p.id === this.socket.id);
+            
+            if (data.winner === currentPlayer.username) {
+                resultDiv.textContent = `🎉 VICTORY! You win! The character was ${data.character.name}`;
+                resultDiv.style.color = '#4CAF50';
+            } else {
+                resultDiv.textContent = `💔 Defeat! ${data.winner} wins! The character was ${data.character.name}`;
+                resultDiv.style.color = '#ff4444';
+            }
         }
         this.showScreen('game-over-screen');
     }
 
     playAgain() {
         this.showScreen('login-screen');
-        // Reset form
-        document.getElementById('username-input').value = '';
+        
+        // Reset all game state
         this.currentGame = null;
         this.selectedCharacter = null;
-        document.getElementById('character-panel').style.display = 'none';
+        
+        // Clear character panel
+        const characterPanel = document.getElementById('character-panel');
+        if (characterPanel) {
+            characterPanel.style.display = 'none';
+            characterPanel.classList.remove('panel-collapsed');
+        }
+        
+        document.getElementById('selected-character-image').src = '';
+        document.getElementById('selected-character-name').textContent = 'None Selected';
+        document.getElementById('selected-character-display').style.display = 'none';
+        
+        // Clear game UI elements
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) chatMessages.innerHTML = '';
+        
+        const questionInput = document.getElementById('question-input');
+        if (questionInput) {
+            questionInput.value = '';
+            questionInput.disabled = true;
+        }
+        
+        const sendButton = document.getElementById('send-question');
+        if (sendButton) sendButton.disabled = true;
+        
+        // Reset login form
+        document.getElementById('username-input').value = '';
+        
+        console.log('Game reset complete - ready for new game!');
     }
 }
 
