@@ -446,7 +446,7 @@ input[type="text"]
     box-shadow: -5px 5px 20px rgba(0, 0, 0, 0.5);
     z-index: 99;
     transition: transform 0.3s ease;
-    display: none;
+    display: block; /* Changed from 'none' to 'block' to make it permanently visible */
 }
 
 .guide-panel.collapsed 
@@ -603,11 +603,11 @@ input[type="text"]
         margin-bottom: 10px;
     }
 
-    /* Guide Panel Mobile */
+     /* Guide Panel Mobile */
     .guide-panel 
     {
         width: 280px;
-        display: none;
+        display: block; /* Changed from 'none' to 'block' */
     }
     
     .guide-panel.collapsed 
