@@ -1,3 +1,7 @@
+// CharacterDatabase.js - Server Version
+const FFXIVCharacter = require('./FFXIVCharacter');
+const { Gender, Race, Affiliation, Job } = require('./CharacterEnums');
+
 // CharacterDatabase.js - Browser Version
 class CharacterDatabase {
     constructor() 
@@ -376,3 +380,4 @@ class CharacterDatabase {
         return this.characters;
     }
 }
+module.exports = CharacterDatabase;

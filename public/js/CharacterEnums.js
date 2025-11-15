@@ -1,4 +1,4 @@
-// CharacterEnums.js - Browser Version
+// CharacterEnums.js - Server Version
 const Gender = {
     MALE: 'male',
     FEMALE: 'female',
@@ -46,3 +46,5 @@ const Job = {
     ACADEMIC: 'academic',
     ROGUE: 'rogue'
 };
+
+module.exports = { Gender, Race, Affiliation, Job };

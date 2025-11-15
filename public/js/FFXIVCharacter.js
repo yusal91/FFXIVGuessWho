@@ -1,4 +1,6 @@
-// FFXIVCharacter.js - Browser Version
+// FFXIVCharacter.js - Server Version
+const { Gender, Race, Affiliation, Job } = require('./CharacterEnums');
+
 class FFXIVCharacter {
     constructor(config) {
         this.id = config.id;
@@ -30,3 +32,5 @@ class FFXIVCharacter {
         return this.cityState === city;
     }
 }
+
+module.exports = FFXIVCharacter;

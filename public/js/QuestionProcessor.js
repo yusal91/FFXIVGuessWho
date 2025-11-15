@@ -1,44 +1,42 @@
-// QuestionProcessor.js - Browser Version
+// QuestionProcessor.js - Server Version
+const { Gender, Race, Affiliation, Job } = require('./CharacterEnums');
+
 class QuestionProcessor {
     constructor(characterDatabase) {
         this.db = characterDatabase;
     }
 
+    // ... (same methods as the browser version)
     processQuestion(question, targetCharacter, currentCharacters) {
         const lowerQuestion = question.toLowerCase();
         
-        // Direct guess detection
         if (this.isGuessQuestion(lowerQuestion)) {
             return this.processGuess(lowerQuestion, targetCharacter, currentCharacters);
         }
 
-        // Gender questions
         if (this.isGenderQuestion(lowerQuestion)) {
             return this.processGenderQuestion(lowerQuestion, targetCharacter, currentCharacters);
         }
 
-        // Race questions
         if (this.isRaceQuestion(lowerQuestion)) {
             return this.processRaceQuestion(lowerQuestion, targetCharacter, currentCharacters);
         }
 
-        // Job questions
         if (this.isJobQuestion(lowerQuestion)) {
             return this.processJobQuestion(lowerQuestion, targetCharacter, currentCharacters);
         }
 
-        // Affiliation questions
         if (this.isAffiliationQuestion(lowerQuestion)) {
             return this.processAffiliationQuestion(lowerQuestion, targetCharacter, currentCharacters);
         }
 
-        // Default answer
         return {
             answer: "No",
             remainingCharacters: currentCharacters
         };
     }
 
+    // ... (all the same helper methods as before)
     isGuessQuestion(question) {
         return question.includes('is it') || question.includes('are they') || 
                question.includes('is your character');
@@ -171,3 +169,5 @@ class QuestionProcessor {
         return match ? match[1].trim().toLowerCase() : '';
     }
 }
+
+module.exports = QuestionProcessor;

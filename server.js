@@ -3,7 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 
-// Import the new character system
+// Import the new character system - FIXED PATH
 const CharacterDatabase = require('./public/js/CharacterDatabase');
 const QuestionProcessor = require('./public/js/QuestionProcessor');
 
@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
                     { id: socket.id, username, character: null },
                     { id: opponent.id, username: opponent.data.username, character: null }
                 ],
-                characters: [...ffxivCharacters], // Use the character database
+                characters: [...ffxivCharacters],
                 currentTurn: socket.id,
                 status: 'character-selection'
             };
