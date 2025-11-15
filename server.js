@@ -42,6 +42,115 @@ const ffxivCharacters = [
 const waitingPlayers = [];
 const games = new Map();
 
+// Helper function to process questions
+function processQuestion(question, targetCharacter, remainingCharacters) {
+    const lowerQuestion = question.toLowerCase();
+    const targetName = targetCharacter.name.toLowerCase();
+    
+    // Handle direct guess questions
+    if (lowerQuestion.includes('is it') || lowerQuestion.includes('are they') || lowerQuestion.includes('does') || lowerQuestion.includes('is your character')) {
+        // Extract the guessed name from the question
+        const guessMatch = lowerQuestion.match(/(?:is it|are they|is your character)\s+([^?.!]+)/);
+        if (guessMatch) {
+            const guessedName = guessMatch[1].trim();
+            // Check if the guessed name matches any part of the target character name
+            const isCorrect = targetName.includes(guessedName.toLowerCase()) || 
+                            guessedName.toLowerCase().includes(targetName);
+            
+            if (isCorrect) {
+                return {
+                    answer: 'Yes',
+                    isGuess: true,
+                    isCorrect: true,
+                    remainingCharacters: remainingCharacters.filter(char => 
+                        char.name.toLowerCase().includes(guessedName.toLowerCase()) || 
+                        guessedName.toLowerCase().includes(char.name.toLowerCase())
+                    )
+                };
+            } else {
+                return {
+                    answer: 'No',
+                    isGuess: true,
+                    isCorrect: false,
+                    remainingCharacters: remainingCharacters.filter(char => 
+                        !char.name.toLowerCase().includes(guessedName.toLowerCase()) && 
+                        !guessedName.toLowerCase().includes(char.name.toLowerCase())
+                    )
+                };
+            }
+        }
+    }
+    
+    // Handle gender questions
+    if (lowerQuestion.includes('male') || lowerQuestion.includes('boy') || lowerQuestion.includes('man') || 
+        lowerQuestion.includes('female') || lowerQuestion.includes('girl') || lowerQuestion.includes('woman')) {
+        const maleCharacters = ['alphinaud', 'thancred', 'urianger', 'estinien', 'aymeric', 'haurchefant', 'raubahn', 'hien', 'graha tia', 'emet-selch', 'crystal exarch', 'zenos', 'cid', 'nero', 'gaius', 'papalymo'];
+        const isMale = maleCharacters.some(name => targetName.includes(name));
+        
+        const askingAboutMale = lowerQuestion.includes('male') || lowerQuestion.includes('boy') || lowerQuestion.includes('man');
+        const answer = askingAboutMale ? isMale : !isMale;
+        
+        return {
+            answer: answer ? 'Yes' : 'No',
+            isGuess: false,
+            remainingCharacters: remainingCharacters.filter(char => {
+                const charIsMale = maleCharacters.some(name => char.name.toLowerCase().includes(name));
+                return askingAboutMale ? charIsMale : !charIsMale;
+            })
+        };
+    }
+    
+    // Handle race questions
+    if (lowerQuestion.includes('elezen') || lowerQuestion.includes('miqo') || lowerQuestion.includes('lalafel') || 
+        lowerQuestion.includes('hyur') || lowerQuestion.includes('roegadyn') || lowerQuestion.includes('au ra')) {
+        
+        const races = {
+            elezen: ['alphinaud', 'alisaie', 'estinien', 'aymeric', 'haurchefant'],
+            miqo: ['yshtola', 'g\'raha tia', 'y\'shtola'],
+            lalafel: ['tataru', 'papalymo', 'krile'],
+            hyur: ['lyse', 'minfilia', 'ryne', 'fordola', 'yda', 'cid', 'nero'],
+            roegadyn: ['raubahn', 'merlwyb'],
+            'au ra': ['estinien', 'sad-u never']
+        };
+        
+        for (const [race, names] of Object.entries(races)) {
+            if (lowerQuestion.includes(race)) {
+                const hasRace = names.some(name => targetName.includes(name));
+                return {
+                    answer: hasRace ? 'Yes' : 'No',
+                    isGuess: false,
+                    remainingCharacters: remainingCharacters.filter(char => {
+                        const charHasRace = names.some(name => char.name.toLowerCase().includes(name));
+                        return hasRace ? charHasRace : !charHasRace;
+                    })
+                };
+            }
+        }
+    }
+    
+    // Handle scion questions
+    if (lowerQuestion.includes('scion') || lowerQuestion.includes('scions of the seventh dawn')) {
+        const scions = ['alphinaud', 'alisaie', 'y\'shtola', 'thancred', 'urianger', 'tataru', 'minfilia', 'papalymo', 'yda', 'estinien', 'g\'raha tia', 'krile'];
+        const isScion = scions.some(name => targetName.includes(name));
+        
+        return {
+            answer: isScion ? 'Yes' : 'No',
+            isGuess: false,
+            remainingCharacters: remainingCharacters.filter(char => {
+                const charIsScion = scions.some(name => char.name.toLowerCase().includes(name));
+                return isScion ? charIsScion : !charIsScion;
+            })
+        };
+    }
+    
+    // Default answer for unrecognized questions
+    return {
+        answer: 'No',
+        isGuess: false,
+        remainingCharacters: remainingCharacters
+    };
+}
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
@@ -59,10 +168,11 @@ io.on('connection', (socket) => {
             const game = {
                 id: gameId,
                 players: [
-                    { id: socket.id, username, character: null, turn: true },
-                    { id: opponent.id, username: opponent.data.username, character: null, turn: false }
+                    { id: socket.id, username, character: null },
+                    { id: opponent.id, username: opponent.data.username, character: null }
                 ],
                 characters: [...ffxivCharacters],
+                currentTurn: socket.id, // Start with the player who just joined
                 status: 'character-selection'
             };
             
@@ -105,7 +215,7 @@ io.on('connection', (socket) => {
             game.status = 'playing';
             io.to(data.gameId).emit('game-ready', {
                 players: game.players,
-                currentTurn: game.players.find(p => p.turn)
+                currentTurn: { id: game.currentTurn, username: game.players.find(p => p.id === game.currentTurn).username }
             });
         }
     });
@@ -116,47 +226,56 @@ io.on('connection', (socket) => {
         if (!game) return;
 
         // Verify it's this player's turn
-        const currentPlayer = game.players.find(p => p.turn);
-        if (currentPlayer.id !== socket.id) return;
-
-        // Process question and eliminate characters
-        const opponent = game.players.find(p => p.id !== socket.id);
-        const answer = data.question.toLowerCase().includes(opponent.character.name.toLowerCase());
-        
-        // Eliminate characters based on answer
-        if (answer) {
-            // Keep only characters that match the question
-            game.characters = game.characters.filter(char => 
-                data.question.toLowerCase().includes(char.name.toLowerCase())
-            );
-        } else {
-            // Remove characters that match the question
-            game.characters = game.characters.filter(char => 
-                !data.question.toLowerCase().includes(char.name.toLowerCase())
-            );
+        if (game.currentTurn !== socket.id) {
+            socket.emit('error', { message: "It's not your turn!" });
+            return;
         }
 
-        // Switch turns
-        game.players.forEach(p => p.turn = !p.turn);
-        const newTurnPlayer = game.players.find(p => p.turn);
+        const opponent = game.players.find(p => p.id !== socket.id);
+        if (!opponent || !opponent.character) return;
 
-        // Send response
+        // Process the question
+        const result = processQuestion(data.question, opponent.character, game.characters);
+        
+        // Update game state
+        game.characters = result.remainingCharacters;
+        
+        // Switch turns
+        game.currentTurn = opponent.id;
+        
+        // Send response to both players
         io.to(data.gameId).emit('question-result', {
             question: data.question,
             askedBy: socket.data.username,
-            answer: answer ? 'Yes' : 'No',
+            answer: result.answer,
             remainingCharacters: game.characters,
-            currentTurn: newTurnPlayer
+            currentTurn: { id: game.currentTurn, username: opponent.username }
         });
 
-        // Check win condition
-        if (game.characters.length === 1) {
-            const winner = game.players.find(p => p.character.name === game.characters[0].name);
+        // Check win condition for correct guess
+        if (result.isGuess && result.isCorrect) {
             io.to(data.gameId).emit('game-over', {
-                winner: winner.username,
-                character: winner.character
+                winner: socket.data.username,
+                winnerId: socket.id,
+                character: opponent.character,
+                players: game.players
             });
             games.delete(data.gameId);
+            return;
+        }
+        
+        // Check win condition if only one character left
+        if (game.characters.length === 1) {
+            const winner = game.players.find(p => p.character.name === game.characters[0].name);
+            if (winner) {
+                io.to(data.gameId).emit('game-over', {
+                    winner: winner.username,
+                    winnerId: winner.id,
+                    character: winner.character,
+                    players: game.players
+                });
+                games.delete(data.gameId);
+            }
         }
     });
 
