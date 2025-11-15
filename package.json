@@ -1,17 +1,20 @@
 {
-  "name": "guess-who-ffxiv",
+  "name": "ffxiv-guess-who",
   "version": "1.0.0",
-  "description": "Final Fantasy XIV Online Guess Who Game",
+  "description": "Final Fantasy XIV Guess Who Game",
   "main": "server.js",
-  "scripts": {
+  "scripts": 
+  {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "dependencies": {
+  "dependencies": 
+  {
     "express": "^4.18.2",
     "socket.io": "^4.7.2"
   },
-  "devDependencies": {
+  "devDependencies": 
+  {
     "nodemon": "^3.0.1"
   }
 }
