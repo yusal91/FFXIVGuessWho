@@ -3,16 +3,15 @@ class FFXIVGuessWhoGame {
         this.socket = io();
         this.currentGame = null;
         this.selectedCharacter = null;
-        this.isMyTurn = false;             // Track turn state
-        this.setupEventListeners();        // EventListeners
-        this.setupSocketListeners();       // SocketListeners
-        this.setupTurnNotifications();     //TurnNotification
-         this.setupGuidePanel();           // Add this line
+        this.isMyTurn = false;
+        this.setupEventListeners();
+        this.setupSocketListeners();
+        this.setupTurnNotifications();
+        this.setupGuidePanel(); // Add this line
     }
 
     setupTurnNotifications() 
     {
-        // Add CSS for animations
         const style = document.createElement('style');
         style.textContent = `
             @keyframes fadeInOut {
@@ -44,11 +43,11 @@ class FFXIVGuessWhoGame {
         document.head.appendChild(style);
     }
 
-    showTurnNotification(playerName) 
+    showTurnNotification(message) 
     {
         const notification = document.createElement('div');
         notification.className = 'turn-notification';
-        notification.textContent = `${playerName} Turn!`;
+        notification.textContent = message;
         
         document.body.appendChild(notification);
         
@@ -61,25 +60,19 @@ class FFXIVGuessWhoGame {
 
     setupEventListeners() 
     {
-        // Login screen
         document.getElementById('find-match-btn').addEventListener('click', () => this.findMatch());
         document.getElementById('username-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.findMatch();
         });
 
-        // Waiting screen
         document.getElementById('cancel-search').addEventListener('click', () => this.cancelSearch());
 
-        // Game screen
         document.getElementById('send-question').addEventListener('click', () => this.sendQuestion());
         document.getElementById('question-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendQuestion();
         });
 
-        // Game over screen
         document.getElementById('play-again').addEventListener('click', () => this.playAgain());
-
-        // Character panel
         document.getElementById('panel-toggle').addEventListener('click', () => this.togglePanel());
     }
 
@@ -125,6 +118,22 @@ class FFXIVGuessWhoGame {
         });
     }
 
+    // ADD THIS NEW METHOD FOR GUIDE PANEL
+    setupGuidePanel() 
+    {
+        const guideToggle = document.getElementById('guide-toggle');
+        const guidePanel = document.getElementById('guide-panel');
+        
+        if (guideToggle && guidePanel) {
+            guideToggle.addEventListener('click', () => {
+                guidePanel.classList.toggle('collapsed');
+            });
+            
+            // Initialize as collapsed by default
+            guidePanel.classList.add('collapsed');
+        }
+    }
+
     findMatch() 
     {
         const username = document.getElementById('username-input').value.trim();
@@ -139,6 +148,7 @@ class FFXIVGuessWhoGame {
 
     cancelSearch() 
     {
+        this.socket.emit('cancel-search');
         this.showScreen('login-screen');
     }
 
@@ -148,9 +158,24 @@ class FFXIVGuessWhoGame {
             screen.classList.remove('active');
         });
         document.getElementById(screenId).classList.add('active');
-
-         // Show/hide guide panel based on screen
+        
+        // ADD THIS LINE TO CONTROL GUIDE PANEL VISIBILITY
         this.toggleGuidePanel(screenId);
+    }
+
+    // ADD THIS NEW METHOD TO CONTROL GUIDE PANEL
+    toggleGuidePanel(screenId) 
+    {
+        const guidePanel = document.getElementById('guide-panel');
+        if (!guidePanel) return;
+        
+        // Show guide only on game screen and character selection
+        const showOnScreens = ['game-screen', 'character-selection'];
+        if (showOnScreens.includes(screenId)) {
+            guidePanel.style.display = 'block';
+        } else {
+            guidePanel.style.display = 'none';
+        }
     }
 
     renderCharacterSelection(characters) 
@@ -173,7 +198,6 @@ class FFXIVGuessWhoGame {
 
     selectCharacter(character, card) 
     {
-        // Visual feedback
         document.querySelectorAll('.character-card').forEach(c => {
             c.classList.remove('selected');
         });
@@ -182,7 +206,6 @@ class FFXIVGuessWhoGame {
         this.selectedCharacter = character;
         this.updateCharacterPanel();
 
-        // Send selection to server
         this.socket.emit('select-character', {
             gameId: this.currentGame.gameId,
             character: character
@@ -213,11 +236,9 @@ class FFXIVGuessWhoGame {
 
     initializeGame(data) 
     {
-        // Find which player is YOU and which is OPPONENT
         const currentPlayer = data.players.find(p => p.id === this.socket.id);
         const opponent = data.players.find(p => p.id !== this.socket.id);
         
-        // Update player info - CORRECTLY assign You vs Opponent
         document.getElementById('player1-info').innerHTML = `
             <strong>You</strong><br>
             ${currentPlayer.username}<br>
@@ -230,7 +251,6 @@ class FFXIVGuessWhoGame {
             <em>Their character: ???</em>
         `;
 
-        // Initialize character board
         this.renderCharacterBoard(this.currentGame.characters);
         this.updateTurnIndicator(data.currentTurn);
     }
@@ -260,9 +280,8 @@ class FFXIVGuessWhoGame {
         const questionInput = document.getElementById('question-input');
         const sendButton = document.getElementById('send-question');
 
-        console.log('Updating turn indicator:', currentTurn);
+        console.log('Updating turn indicator - current turn ID:', currentTurn.id, 'My ID:', this.socket.id);
         
-        // Update player turn highlights
         document.querySelectorAll('.player-info').forEach(info => {
             info.classList.remove('current-turn');
         });
@@ -273,8 +292,6 @@ class FFXIVGuessWhoGame {
             questionInput.disabled = false;
             sendButton.disabled = false;
             document.getElementById('player1-info').classList.add('current-turn');
-            
-            // Focus the input for better UX
             setTimeout(() => questionInput.focus(), 100);
         } else {
             this.isMyTurn = false;
@@ -302,7 +319,7 @@ class FFXIVGuessWhoGame {
 
         console.log('Sending question:', question);
 
-        // Disable input immediately to prevent double-sending
+        // Immediately disable input to prevent double sends
         questionInput.disabled = true;
         document.getElementById('send-question').disabled = true;
 
@@ -311,9 +328,7 @@ class FFXIVGuessWhoGame {
             question: question
         });
 
-        // Add question to chat immediately for better UX
         this.addChatMessage(`You: ${question}`, 'question');
-
         questionInput.value = '';
     }
 
@@ -321,29 +336,20 @@ class FFXIVGuessWhoGame {
     {
         console.log('Question result received:', data);
 
-        // Add answer to chat
         this.addChatMessage(`${data.askedBy} asked: "${data.question}"`, 'question');
         this.addChatMessage(`Answer: ${data.answer}`, 'answer');
 
-        // Update character board
         if (data.remainingCharacters) {
             this.renderCharacterBoard(data.remainingCharacters);
         }
 
-        // Update turn based on the result data
+        // Update turn based on the result
         if (data.currentTurn) {
             this.updateTurnIndicator(data.currentTurn);
             
-            // Show turn notification if it's your turn
             if (data.currentTurn.id === this.socket.id) {
                 this.showTurnNotification("✨ YOUR TURN!");
             }
-        }
-
-        // If no turn update in data, request one from server
-        if (!data.currentTurn && this.currentGame) {
-            console.log('No turn data in response, requesting update...');
-            this.socket.emit('request-turn-update', { gameId: this.currentGame.gameId });
         }
     }
 
@@ -359,31 +365,35 @@ class FFXIVGuessWhoGame {
 
     showGameOver(data) 
     {
-    const resultDiv = document.getElementById('game-result');
-    if (data.winner) {
-        // Use winnerId instead of winner for comparison
-        const isYouTheWinner = data.winnerId === this.socket.id;
-        
-        if (isYouTheWinner) {
-            resultDiv.textContent = `🎉 VICTORY! You win! The character was ${data.character.name}`;
-            resultDiv.style.color = '#4CAF50';
+        const resultDiv = document.getElementById('game-result');
+        if (data.winner) {
+            const isYouTheWinner = data.winnerId === this.socket.id;
+            const winnerPlayer = data.players.find(player => player.id === data.winnerId);
+            const winnerName = winnerPlayer ? winnerPlayer.username : 'Your opponent';
+            
+            if (isYouTheWinner) {
+                resultDiv.textContent = `🎉 VICTORY! You win! The character was ${data.character.name}`;
+                resultDiv.style.color = '#4CAF50';
+            } else {
+                resultDiv.textContent = `💔 Defeat! ${winnerName} wins! The character was ${data.character.name}`;
+                resultDiv.style.color = '#ff4444';
+            }
         } else {
-            resultDiv.textContent = `💔 Defeat! ${data.winner} wins! The character was ${data.character.name}`;
-            resultDiv.style.color = '#ff4444';
+            resultDiv.textContent = `Game Over! The character was ${data.character.name}`;
+            resultDiv.style.color = '#ffcc00';
         }
+        
+        this.addChatMessage(`Game Over! ${data.character.name} was the character.`, 'system');
+        this.showScreen('game-over-screen');
     }
-    this.showScreen('game-over-screen');
-}
+
     playAgain() 
     {
         this.showScreen('login-screen');
-        
-        // Reset all game state
         this.currentGame = null;
         this.selectedCharacter = null;
         this.isMyTurn = false;
         
-        // Clear character panel
         const characterPanel = document.getElementById('character-panel');
         if (characterPanel) {
             characterPanel.style.display = 'none';
@@ -394,7 +404,6 @@ class FFXIVGuessWhoGame {
         document.getElementById('selected-character-name').textContent = 'None Selected';
         document.getElementById('selected-character-display').style.display = 'none';
         
-        // Clear game UI elements
         const chatMessages = document.getElementById('chat-messages');
         if (chatMessages) chatMessages.innerHTML = '';
         
@@ -407,58 +416,16 @@ class FFXIVGuessWhoGame {
         const sendButton = document.getElementById('send-question');
         if (sendButton) sendButton.disabled = true;
         
-        // Reset player info displays
-        const player1Info = document.getElementById('player1-info');
-        const player2Info = document.getElementById('player2-info');
-        if (player1Info) player1Info.innerHTML = '';
-        if (player2Info) player2Info.innerHTML = '';
+        document.getElementById('player1-info').innerHTML = '';
+        document.getElementById('player2-info').innerHTML = '';
         
-        // Reset turn indicator
         const turnIndicator = document.getElementById('turn-indicator');
         if (turnIndicator) turnIndicator.textContent = '';
         
-        // Reset character boards
-        const selectionGrid = document.getElementById('characters-grid');
-        const gameGrid = document.getElementById('characters-board');
-        if (selectionGrid) selectionGrid.innerHTML = '';
-        if (gameGrid) gameGrid.innerHTML = '';
-        
-        // Reset login form
+        document.getElementById('characters-grid').innerHTML = '';
+        document.getElementById('characters-board').innerHTML = '';
         document.getElementById('username-input').value = '';
-        
-        console.log('Game reset complete - ready for new game!');
-    }
-
-    // Add this new method
-    setupGuidePanel() 
-    {
-        const guideToggle = document.getElementById('guide-toggle');
-        const guidePanel = document.getElementById('guide-panel');
-        
-        if (guideToggle && guidePanel) {
-            guideToggle.addEventListener('click', () => {
-                guidePanel.classList.toggle('collapsed');
-            });
-        }
-    }
-
-    // Add this method to control guide panel visibility
-    toggleGuidePanel(screenId) 
-    {
-        const guidePanel = document.getElementById('guide-panel');
-        if (!guidePanel) return;
-        
-        // Show guide on game screens, hide on others
-        const showOnScreens = ['game-screen', 'character-selection'];
-        if (showOnScreens.includes(screenId)) {
-            guidePanel.style.display = 'block';
-        } else {
-            guidePanel.style.display = 'none';
-        }
     }
 }
 
-// Initialize the game when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    new FFXIVGuessWhoGame();
-});
+document.addEventListener('DOMContentLoaded', () => { new FFXIVGuessWhoGame(); });
