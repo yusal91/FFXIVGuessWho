@@ -1,10 +1,10 @@
 class FFXIVGuessWhoGame {
-        constructor() {
+    constructor() {
         this.socket = io();
         this.currentGame = null;
         this.setupEventListeners();
         this.setupSocketListeners();
-        this.setupTurnNotifications(); // ← ADD THIS LINE
+        this.setupTurnNotifications();
     }
 
     setupTurnNotifications() {
@@ -294,17 +294,28 @@ class FFXIVGuessWhoGame {
     showGameOver(data) {
         const resultDiv = document.getElementById('game-result');
         if (data.winner) {
-            // The server sends the correct winner - check if it's YOU
-            const isYouTheWinner = data.winner === this.socket.data.username;
+            // FIX: Check if the winner is the current player by comparing socket IDs
+            const isYouTheWinner = data.winner === this.socket.id;
+            
+            // FIX: Find the winner's username from the players array
+            const winnerPlayer = data.players.find(player => player.id === data.winner);
+            const winnerName = winnerPlayer ? winnerPlayer.username : 'Your opponent';
             
             if (isYouTheWinner) {
                 resultDiv.textContent = `🎉 VICTORY! You win! The character was ${data.character.name}`;
                 resultDiv.style.color = '#4CAF50';
             } else {
-                resultDiv.textContent = `💔 Defeat! ${data.winner} wins! The character was ${data.character.name}`;
+                resultDiv.textContent = `💔 Defeat! ${winnerName} wins! The character was ${data.character.name}`;
                 resultDiv.style.color = '#ff4444';
             }
+        } else {
+            resultDiv.textContent = `Game Over! The character was ${data.character.name}`;
+            resultDiv.style.color = '#ffcc00';
         }
+        
+        // Add final message to chat
+        this.addChatMessage(`Game Over! ${data.character.name} was the character.`, 'system');
+        
         this.showScreen('game-over-screen');
     }
 
