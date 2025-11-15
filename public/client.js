@@ -3,13 +3,15 @@ class FFXIVGuessWhoGame {
         this.socket = io();
         this.currentGame = null;
         this.selectedCharacter = null;
-        this.isMyTurn = false; // Track turn state
-        this.setupEventListeners();
-        this.setupSocketListeners();
-        this.setupTurnNotifications();
+        this.isMyTurn = false;             // Track turn state
+        this.setupEventListeners();        // EventListeners
+        this.setupSocketListeners();       // SocketListeners
+        this.setupTurnNotifications();     //TurnNotification
+         this.setupGuidePanel();           // Add this line
     }
 
-    setupTurnNotifications() {
+    setupTurnNotifications() 
+    {
         // Add CSS for animations
         const style = document.createElement('style');
         style.textContent = `
@@ -42,7 +44,8 @@ class FFXIVGuessWhoGame {
         document.head.appendChild(style);
     }
 
-    showTurnNotification(playerName) {
+    showTurnNotification(playerName) 
+    {
         const notification = document.createElement('div');
         notification.className = 'turn-notification';
         notification.textContent = `${playerName} Turn!`;
@@ -56,7 +59,8 @@ class FFXIVGuessWhoGame {
         }, 2000);
     }
 
-    setupEventListeners() {
+    setupEventListeners() 
+    {
         // Login screen
         document.getElementById('find-match-btn').addEventListener('click', () => this.findMatch());
         document.getElementById('username-input').addEventListener('keypress', (e) => {
@@ -79,7 +83,8 @@ class FFXIVGuessWhoGame {
         document.getElementById('panel-toggle').addEventListener('click', () => this.togglePanel());
     }
 
-    setupSocketListeners() {
+    setupSocketListeners() 
+    {
         this.socket.on('waiting', (message) => {
             this.showScreen('waiting-screen');
             console.log('Waiting for opponent...');
@@ -120,7 +125,8 @@ class FFXIVGuessWhoGame {
         });
     }
 
-    findMatch() {
+    findMatch() 
+    {
         const username = document.getElementById('username-input').value.trim();
         if (!username) {
             alert('Please enter your Warrior of Light name');
@@ -131,18 +137,24 @@ class FFXIVGuessWhoGame {
         this.showScreen('waiting-screen');
     }
 
-    cancelSearch() {
+    cancelSearch() 
+    {
         this.showScreen('login-screen');
     }
 
-    showScreen(screenId) {
+    showScreen(screenId) 
+    {
         document.querySelectorAll('.screen').forEach(screen => {
             screen.classList.remove('active');
         });
         document.getElementById(screenId).classList.add('active');
+
+         // Show/hide guide panel based on screen
+        this.toggleGuidePanel(screenId);
     }
 
-    renderCharacterSelection(characters) {
+    renderCharacterSelection(characters) 
+    {
         const grid = document.getElementById('characters-grid');
         grid.innerHTML = '';
 
@@ -159,7 +171,8 @@ class FFXIVGuessWhoGame {
         });
     }
 
-    selectCharacter(character, card) {
+    selectCharacter(character, card) 
+    {
         // Visual feedback
         document.querySelectorAll('.character-card').forEach(c => {
             c.classList.remove('selected');
@@ -176,7 +189,8 @@ class FFXIVGuessWhoGame {
         });
     }
 
-    updateCharacterPanel() {
+    updateCharacterPanel() 
+    {
         const panel = document.getElementById('character-panel');
         const image = document.getElementById('selected-character-image');
         const name = document.getElementById('selected-character-name');
@@ -192,11 +206,13 @@ class FFXIVGuessWhoGame {
         }
     }
 
-    togglePanel() {
+    togglePanel() 
+    {
         document.getElementById('character-panel').classList.toggle('panel-collapsed');
     }
 
-    initializeGame(data) {
+    initializeGame(data) 
+    {
         // Find which player is YOU and which is OPPONENT
         const currentPlayer = data.players.find(p => p.id === this.socket.id);
         const opponent = data.players.find(p => p.id !== this.socket.id);
@@ -219,7 +235,8 @@ class FFXIVGuessWhoGame {
         this.updateTurnIndicator(data.currentTurn);
     }
 
-    renderCharacterBoard(characters) {
+    renderCharacterBoard(characters) 
+    {
         const board = document.getElementById('characters-board');
         board.innerHTML = '';
 
@@ -237,7 +254,8 @@ class FFXIVGuessWhoGame {
         document.getElementById('eliminated-count').textContent = 24 - characters.length;
     }
 
-    updateTurnIndicator(currentTurn) {
+    updateTurnIndicator(currentTurn) 
+    {
         const indicator = document.getElementById('turn-indicator');
         const questionInput = document.getElementById('question-input');
         const sendButton = document.getElementById('send-question');
@@ -267,7 +285,8 @@ class FFXIVGuessWhoGame {
         }
     }
 
-    sendQuestion() {
+    sendQuestion() 
+    {
         const questionInput = document.getElementById('question-input');
         const question = questionInput.value.trim();
 
@@ -298,7 +317,8 @@ class FFXIVGuessWhoGame {
         questionInput.value = '';
     }
 
-    handleQuestionResult(data) {
+    handleQuestionResult(data) 
+    {
         console.log('Question result received:', data);
 
         // Add answer to chat
@@ -327,7 +347,8 @@ class FFXIVGuessWhoGame {
         }
     }
 
-    addChatMessage(message, type = 'system') {
+    addChatMessage(message, type = 'system') 
+    {
         const chatMessages = document.getElementById('chat-messages');
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
@@ -336,7 +357,8 @@ class FFXIVGuessWhoGame {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    showGameOver(data) {
+    showGameOver(data) 
+    {
     const resultDiv = document.getElementById('game-result');
     if (data.winner) {
         // Use winnerId instead of winner for comparison
@@ -352,7 +374,8 @@ class FFXIVGuessWhoGame {
     }
     this.showScreen('game-over-screen');
 }
-    playAgain() {
+    playAgain() 
+    {
         this.showScreen('login-screen');
         
         // Reset all game state
@@ -404,6 +427,34 @@ class FFXIVGuessWhoGame {
         document.getElementById('username-input').value = '';
         
         console.log('Game reset complete - ready for new game!');
+    }
+
+    // Add this new method
+    setupGuidePanel() 
+    {
+        const guideToggle = document.getElementById('guide-toggle');
+        const guidePanel = document.getElementById('guide-panel');
+        
+        if (guideToggle && guidePanel) {
+            guideToggle.addEventListener('click', () => {
+                guidePanel.classList.toggle('collapsed');
+            });
+        }
+    }
+
+    // Add this method to control guide panel visibility
+    toggleGuidePanel(screenId) 
+    {
+        const guidePanel = document.getElementById('guide-panel');
+        if (!guidePanel) return;
+        
+        // Show guide on game screens, hide on others
+        const showOnScreens = ['game-screen', 'character-selection'];
+        if (showOnScreens.includes(screenId)) {
+            guidePanel.style.display = 'block';
+        } else {
+            guidePanel.style.display = 'none';
+        }
     }
 }
 
