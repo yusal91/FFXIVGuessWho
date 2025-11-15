@@ -436,8 +436,8 @@ input[type="text"]
 .guide-panel 
 {
     position: fixed;
-    top: 50%;
-    right: 0;
+    top: 20px;
+    right: 20px;
     transform: translateY(-50%);
     width: 300px;
     background: linear-gradient(135deg, #1a2a6c, #2c3e50);
