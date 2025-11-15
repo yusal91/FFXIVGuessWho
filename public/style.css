@@ -441,17 +441,17 @@ input[type="text"]
     width: 300px;
     background: linear-gradient(135deg, #1a2a6c, #2c3e50);
     border: 2px solid #ffcc00;
-    border-radius: 15px 15px 0 0; /* Changed border radius */
+    border-radius: 15px;
     box-shadow: -5px 5px 20px rgba(0, 0, 0, 0.5);
     z-index: 99;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
     display: block;
-    transform-origin: top center; /* Changed transform origin */
+    overflow: hidden; /* Add this to contain content */
 }
 
 .guide-panel.collapsed 
 {
-    transform: translateY(calc(-100% + 60px)); /* Changed to vertical translation */
+    height: 60px; /* Match header height */
 }
 
 .guide-header 
@@ -459,13 +459,15 @@ input[type="text"]
     background: linear-gradient(135deg, #ffcc00, #e6b800);
     color: #1a2a6c;
     padding: 15px 20px;
-    border-radius: 13px 13px 0 0; /* Changed border radius */
+    border-radius: 13px 13px 0 0;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-weight: bold;
     border-bottom: 2px solid #1a2a6c;
+    height: 60px; /* Fixed height */
+    box-sizing: border-box;
 }
 
 .guide-header h3 
@@ -483,7 +485,7 @@ input[type="text"]
 
 .guide-panel.collapsed .guide-toggle-icon 
 {
-    transform: rotate(-90deg);
+    transform: rotate(180deg); /* Rotate arrow when collapsed */
 }
 
 .guide-content 
@@ -492,9 +494,17 @@ input[type="text"]
     overflow-y: auto;
     padding: 20px;
     background: rgba(26, 42, 108, 0.95);
-    border-radius: 0 0 0 0; /* Removed border radius */
+    transition: all 0.3s ease;
 }
 
+.guide-panel.collapsed .guide-content 
+{
+    max-height: 0;
+    padding: 0 20px;
+    overflow: hidden;
+}
+
+/* Keep the existing guide-section styles the same */
 .guide-section 
 {
     margin-bottom: 20px;
@@ -603,16 +613,19 @@ input[type="text"]
         margin-bottom: 10px;
     }
 
-     /* Guide Panel Mobile */
+    /* Guide Panel Mobile - UPDATED */
     .guide-panel 
     {
+        position: fixed;
         width: 280px;
-        display: block; /* Changed from 'none' to 'block' */
+        right: 10px;
+        top: 10px;
+        display: block;
     }
     
     .guide-panel.collapsed 
     {
-        transform: translateY(calc(-100% + 60px));
+        height: 60px;
     }
     
     .guide-content 
@@ -626,11 +639,13 @@ input[type="text"]
     .guide-panel 
     {
         width: 250px;
+        right: 5px;
+        top: 5px;
     }
     
     .guide-panel.collapsed 
     {
-        transform: translateY(calc(-100% + 60px));
+        height: 60px;
     }
     
     .guide-header h3 
