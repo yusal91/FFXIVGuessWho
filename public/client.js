@@ -2,6 +2,8 @@ class FFXIVGuessWhoGame {
     constructor() {
         this.socket = io();
         this.currentGame = null;
+        this.selectedCharacter = null;
+        this.isMyTurn = false; // Track turn state
         this.setupEventListeners();
         this.setupSocketListeners();
         this.setupTurnNotifications();
@@ -98,6 +100,11 @@ class FFXIVGuessWhoGame {
             this.handleQuestionResult(data);
         });
 
+        this.socket.on('turn-update', (data) => {
+            console.log('Turn update received:', data);
+            this.updateTurnIndicator(data.currentTurn);
+        });
+
         this.socket.on('game-over', (data) => {
             this.showGameOver(data);
         });
@@ -105,6 +112,11 @@ class FFXIVGuessWhoGame {
         this.socket.on('opponent-disconnected', () => {
             alert('Your opponent has returned to their home world. Returning to main menu.');
             this.showScreen('login-screen');
+        });
+
+        this.socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            alert(`Error: ${error.message}`);
         });
     }
 
@@ -185,7 +197,7 @@ class FFXIVGuessWhoGame {
     }
 
     initializeGame(data) {
-        // FIX: Find which player is YOU and which is OPPONENT
+        // Find which player is YOU and which is OPPONENT
         const currentPlayer = data.players.find(p => p.id === this.socket.id);
         const opponent = data.players.find(p => p.id !== this.socket.id);
         
@@ -230,17 +242,24 @@ class FFXIVGuessWhoGame {
         const questionInput = document.getElementById('question-input');
         const sendButton = document.getElementById('send-question');
 
+        console.log('Updating turn indicator:', currentTurn);
+        
         // Update player turn highlights
         document.querySelectorAll('.player-info').forEach(info => {
             info.classList.remove('current-turn');
         });
 
         if (currentTurn.id === this.socket.id) {
+            this.isMyTurn = true;
             indicator.textContent = "Your turn! Ask a question about your opponent's character.";
             questionInput.disabled = false;
             sendButton.disabled = false;
             document.getElementById('player1-info').classList.add('current-turn');
+            
+            // Focus the input for better UX
+            setTimeout(() => questionInput.focus(), 100);
         } else {
+            this.isMyTurn = false;
             indicator.textContent = "Opponent's turn. Waiting for their question...";
             questionInput.disabled = true;
             sendButton.disabled = true;
@@ -252,34 +271,60 @@ class FFXIVGuessWhoGame {
         const questionInput = document.getElementById('question-input');
         const question = questionInput.value.trim();
 
-        if (!question) return;
+        if (!question) {
+            alert('Please enter a question');
+            return;
+        }
+
+        if (!this.isMyTurn) {
+            alert("It's not your turn!");
+            return;
+        }
+
+        console.log('Sending question:', question);
+
+        // Disable input immediately to prevent double-sending
+        questionInput.disabled = true;
+        document.getElementById('send-question').disabled = true;
 
         this.socket.emit('ask-question', {
             gameId: this.currentGame.gameId,
             question: question
         });
 
-        // Add question to chat
+        // Add question to chat immediately for better UX
         this.addChatMessage(`You: ${question}`, 'question');
 
         questionInput.value = '';
     }
 
     handleQuestionResult(data) {
+        console.log('Question result received:', data);
+
         // Add answer to chat
         this.addChatMessage(`${data.askedBy} asked: "${data.question}"`, 'question');
         this.addChatMessage(`Answer: ${data.answer}`, 'answer');
 
         // Update character board
-        this.renderCharacterBoard(data.remainingCharacters);
-
-        // Only show turn notification if game is still ongoing AND it's your turn
-        if (data.remainingCharacters.length > 1 && data.currentTurn.id === this.socket.id) {
-            this.showTurnNotification("✨ YOUR TURN!");
+        if (data.remainingCharacters) {
+            this.renderCharacterBoard(data.remainingCharacters);
         }
 
-        // Update turn
-        this.updateTurnIndicator(data.currentTurn);
+        // Update turn based on the result data
+        if (data.currentTurn) {
+            this.updateTurnIndicator(data.currentTurn);
+            
+            // Show turn notification if it's your turn
+            if (data.currentTurn.id === this.socket.id) {
+                this.showTurnNotification("✨ YOUR TURN!");
+            }
+        }
+
+        // If no turn update in data, request one from server
+        if (!data.currentTurn && this.currentGame) {
+            console.log('No turn data in response, requesting update...');
+            this.socket.emit('request-turn-update', { gameId: this.currentGame.gameId });
+        }
     }
 
     addChatMessage(message, type = 'system') {
@@ -294,10 +339,10 @@ class FFXIVGuessWhoGame {
     showGameOver(data) {
         const resultDiv = document.getElementById('game-result');
         if (data.winner) {
-            // FIX: Check if the winner is the current player by comparing socket IDs
+            // Check if the winner is the current player by comparing socket IDs
             const isYouTheWinner = data.winner === this.socket.id;
             
-            // FIX: Find the winner's username from the players array
+            // Find the winner's username from the players array
             const winnerPlayer = data.players.find(player => player.id === data.winner);
             const winnerName = winnerPlayer ? winnerPlayer.username : 'Your opponent';
             
@@ -325,6 +370,7 @@ class FFXIVGuessWhoGame {
         // Reset all game state
         this.currentGame = null;
         this.selectedCharacter = null;
+        this.isMyTurn = false;
         
         // Clear character panel
         const characterPanel = document.getElementById('character-panel');
