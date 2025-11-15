@@ -438,7 +438,6 @@ input[type="text"]
     position: fixed;
     top: 20px;
     right: 20px;
-    transform: translateY(-50%);
     width: 300px;
     background: linear-gradient(135deg, #1a2a6c, #2c3e50);
     border: 2px solid #ffcc00;
@@ -452,7 +451,7 @@ input[type="text"]
 
 .guide-panel.collapsed 
 {
-    transform: translateX(290px) translateY(-50%);
+    transform: translateX(290px);
 }
 
 .guide-header 
@@ -611,8 +610,9 @@ input[type="text"]
         display: none;
     }
     
-    .guide-panel.collapsed {
-        transform: translateX(270px) translateY(-50%);
+    .guide-panel.collapsed 
+    {
+        transform: translateX(270px);
     }
     
     .guide-content 
@@ -621,7 +621,8 @@ input[type="text"]
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px) 
+{
     .guide-panel 
     {
         width: 250px;
@@ -629,7 +630,7 @@ input[type="text"]
     
     .guide-panel.collapsed 
     {
-        transform: translateX(240px) translateY(-50%);
+        transform: translateX(240px);
     }
     
     .guide-header h3 
